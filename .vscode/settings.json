@@ -78,6 +78,7 @@
         "queue": "cpp",
         "random": "cpp",
         "set": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "dense": "cpp"
     }
 }
