@@ -32,13 +32,16 @@ bool ImuGpsLocalizer::ProcessImuData(const ImuDataPtr imu_data_ptr, State* fused
     return true;
 }
 
+// 处理GPS位置数据
 bool ImuGpsLocalizer::ProcessGpsPositionData(const GpsPositionDataPtr gps_data_ptr) {
+    // 如果初始化还没有完成
     if (!initialized_) {
         if (!initializer_->AddGpsPositionData(gps_data_ptr, &state_)) {
             return false;
         }
 
         // Initialize the initial gps point used to convert lla to ENU.
+        // 初始化初始GPS点，用于将经纬度和高度转换为ENU坐标系。
         init_lla_ = gps_data_ptr->lla;
         
         initialized_ = true;
@@ -47,7 +50,7 @@ bool ImuGpsLocalizer::ProcessGpsPositionData(const GpsPositionDataPtr gps_data_p
         return true;
     }
 
-    // Update.
+    // 通过GPS位置数据更新状态
     gps_processor_->UpdateStateByGpsPosition(init_lla_, gps_data_ptr, &state_);
 
     return true;

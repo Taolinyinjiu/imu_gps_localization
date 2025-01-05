@@ -17,12 +17,15 @@ struct ImuData {
 using ImuDataPtr = std::shared_ptr<ImuData>;
 
 // GPS位置数据结构体
+// RMUA传入的GPS数据是使用的geometry_msgs::PoseStamped类型，有x,y,z数据和角度的四元数
 struct GpsPositionData {
     double timestamp;     // 时间戳，以秒为单位。
  
     Eigen::Vector3d lla;  // 纬度（度）、经度（度）和高度（米）。
     Eigen::Matrix3d cov;  // 协方差矩阵，单位为平方米。
 };
+
+
 // 使用std::shared_ptr智能指针管理GpsPositionData结构体
 using GpsPositionDataPtr = std::shared_ptr<GpsPositionData>;
 

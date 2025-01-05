@@ -3,11 +3,16 @@
 // 导入iomanip库，用于格式化输入和输出
 #include <iomanip>
 // 导入glog库，用于日志记录
-#include <glog/logging.h>
+// #include <glog/logging.h>
 // 导入基本数据类型头文件
 #include "imu_gps_localizer/base_type.h"
-// 构造函数，接受一个ros::NodeHandle类型的引用nh。
+// 导入ROS基本头文件
+#include <ros/ros.h>
+// 导入GPS数据类型头文件
+#include <geometry_msgs/PoseStamped.h>
+
 LocalizationWrapper::LocalizationWrapper(ros::NodeHandle& nh) {
+    // FLAGS_log_dir = "/tmp/ESKF";
     // 读取参数
     double acc_noise, gyro_noise, acc_bias_noise, gyro_bias_noise;
     nh.param("acc_noise",       acc_noise, 1e-2);
@@ -39,8 +44,8 @@ LocalizationWrapper::LocalizationWrapper(ros::NodeHandle& nh) {
 
     // Subscribe topics.
     // 订阅话题
-    imu_sub_ = nh.subscribe("/imu/data", 10,  &LocalizationWrapper::ImuCallback, this);
-    gps_position_sub_ = nh.subscribe("/fix", 10,  &LocalizationWrapper::GpsPositionCallback, this);
+    imu_sub_ = nh.subscribe("/airsim_node/drone_1/imu/imu_with_frame", 10,  &LocalizationWrapper::ImuCallback, this);
+    gps_position_sub_ = nh.subscribe("/airsim_node/drone_1/gps", 10,  &LocalizationWrapper::GpsPositionCallback, this);
     // 发布话题
     state_pub_ = nh.advertise<nav_msgs::Path>("fused_path", 10);
 }
@@ -49,10 +54,12 @@ LocalizationWrapper::LocalizationWrapper(ros::NodeHandle& nh) {
 LocalizationWrapper::~LocalizationWrapper() {
     file_state_.close();
     file_gps_.close();
+    // google::ShutdownGoogleLogging();
 }
 
 // IMU回调函数，接受一个sensor_msgs::ImuConstPtr类型的指针imu_msg_ptr。
 void LocalizationWrapper::ImuCallback(const sensor_msgs::ImuConstPtr& imu_msg_ptr) {
+    // ROS_INFO("ImuCallback");
     // 构造ImuData对象指针imu_data_ptr，使用make_shared函数创建对象。
     ImuGpsLocalization::ImuDataPtr imu_data_ptr = std::make_shared<ImuGpsLocalization::ImuData>();
     // 将IMU消息的时间戳转换为秒。
@@ -84,20 +91,48 @@ void LocalizationWrapper::ImuCallback(const sensor_msgs::ImuConstPtr& imu_msg_pt
     LogState(fused_state);
 }
 
+// void LocalizationWrapper::GpsPositionCallback(const geo)
+
+// void LocalizationWrapper::GpsPositionCallback(const geometry_msgs::PoseStampedConstPtr& gps_msg_ptr) {
+//     // Check the gps_status.
+//     ROS_INFO("GpsPositionCallback");
+//     if (gps_msg_ptr->status.status != 2) {
+//         // LOG(WARNING) << "[GpsCallBack]: Bad gps message!";
+//         ROS_WARN("[GpsCallBack]: Bad gps message!");
+//         return;
+//     }
+
+//     ImuGpsLocalization::GpsPositionDataPtr gps_data_ptr = std::make_shared<ImuGpsLocalization::GpsPositionData>();
+//     gps_data_ptr->timestamp = gps_msg_ptr->header.stamp.toSec();
+//     gps_data_ptr->lla << gps_msg_ptr->latitude,
+//                          gps_msg_ptr->longitude,
+//                          gps_msg_ptr->altitude;
+//     gps_data_ptr->cov = Eigen::Map<const Eigen::Matrix3d>(gps_msg_ptr->position_covariance.data());
+
+//     imu_gps_localizer_ptr_->ProcessGpsPositionData(gps_data_ptr);
+
+//     LogGps(gps_data_ptr);
+// }
+
 void LocalizationWrapper::GpsPositionCallback(const sensor_msgs::NavSatFixConstPtr& gps_msg_ptr) {
     // Check the gps_status.
+    // 检查GPS状态。-1表示没有定位信息，0表示未分类的定位信息，1表示SBAS定位信息，2表示GBAS定位信息。
     if (gps_msg_ptr->status.status != 2) {
-        LOG(WARNING) << "[GpsCallBack]: Bad gps message!";
+        // LOG(WARNING) << "[GpsCallBack]: Bad gps message!";
+        ROS_WARN("[GpsCallBack]: Bad gps message!");
         return;
     }
-
+    // 构造GpsPositionData对象指针gps_data_ptr，使用std的make_shared函数创建对象。
     ImuGpsLocalization::GpsPositionDataPtr gps_data_ptr = std::make_shared<ImuGpsLocalization::GpsPositionData>();
+    // 更新gps_data_ptr的时间戳。
     gps_data_ptr->timestamp = gps_msg_ptr->header.stamp.toSec();
+    // 更新gps_data_ptr的经纬度和高度。
     gps_data_ptr->lla << gps_msg_ptr->latitude,
                          gps_msg_ptr->longitude,
                          gps_msg_ptr->altitude;
+    // 更新gps_data_ptr的协方差矩阵。 
     gps_data_ptr->cov = Eigen::Map<const Eigen::Matrix3d>(gps_msg_ptr->position_covariance.data());
-
+    // 调用ImuGpsLocalizer对象的ProcessGpsPositionData函数，传入gps_data_ptr。
     imu_gps_localizer_ptr_->ProcessGpsPositionData(gps_data_ptr);
 
     LogGps(gps_data_ptr);

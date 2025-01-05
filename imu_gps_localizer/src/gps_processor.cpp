@@ -6,6 +6,7 @@
 namespace ImuGpsLocalization {
 // 构造函数，接受一个Eigen::Vector3d类型的参数I_p_Gps，使用成员初始化列表初始化I_p_Gps_。
 GpsProcessor::GpsProcessor(const Eigen::Vector3d& I_p_Gps) : I_p_Gps_(I_p_Gps) { }
+
 // 通过GPS位置数据更新状态，接受一个Eigen::Vector3d类型的参数init_lla、一个GpsPositionDataPtr类型的参数gps_data_ptr和一个State类型的指针state。
 bool GpsProcessor::UpdateStateByGpsPosition(const Eigen::Vector3d& init_lla, const GpsPositionDataPtr gps_data_ptr, State* state) {
     // 雅可比矩阵和残差。
